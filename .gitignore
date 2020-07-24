@@ -128,6 +128,9 @@ Icon
 config.json
 data.db
 
+# exe file
+GoTeleFeed
+
 # Files that might appear in the root of a volume
 .DocumentRevisions-V100
 .fseventsd

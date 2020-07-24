@@ -15,27 +15,39 @@ type Config struct {
     Client *http.Client
 }
 
-func loadConfig() *Config {
-    log.Println("Loading config file")
-    data, err := ioutil.ReadFile("./config.json")
+func loadFile(filename string) []byte {
+    data, err := ioutil.ReadFile(filename)
     if err != nil {
         panic(err)
     }
-    config := &Config{}
-    if err := json.Unmarshal(data, config); err != nil {
-        panic(err)
-    }
+    return data
+}
 
-    config.Client = &http.Client{}
-
+func setupClient(config *Config) *http.Client {
+    client := &http.Client{}
     if config.Proxy != "" {
         proxyUrl, err := url.Parse(config.Proxy)
         if err != nil {
             panic(err)
         }
         log.Printf("Using proxy %s", config.Proxy)
-        config.Client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+        client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
     }
+    return client
+}
 
+func parseConfig(data []byte) *Config {
+    config := &Config{}
+    if err := json.Unmarshal(data, config); err != nil {
+        panic(err)
+    }
+    config.Client = setupClient(config)
+    return config
+}
+
+func loadConfig() *Config {
+    log.Println("Loading config file")
+    data := loadFile("./config.json")
+    config := parseConfig(data)
     return config
 }

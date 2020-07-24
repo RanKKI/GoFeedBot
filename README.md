@@ -1,4 +1,4 @@
-GoTeleFeed is a telegram bot that can subscribe rss/atom feed and push to the telegram 
+GoTeleFeed is a telegram bot which allowed user to subscribe RSS/Atom feed
 
 ## Usage
  - Clone this project

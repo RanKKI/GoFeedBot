@@ -54,10 +54,9 @@ func GetUpdateTime(chatID int64) time.Time {
 }
 
 func UpdateTime(chatID int64) {
-    feed := Feed{
+    db.Table(TableName).Where(&Feed{
         ChatID: chatID,
-    }
-    db.Table(TableName).Where(&feed).Update(Feed{
+    }).Update(Feed{
         LastCheckAt: time.Now(),
     })
 }

@@ -27,7 +27,7 @@ func newBot(config *Config) *tgbotapi.BotAPI {
     return bot
 }
 
-func startListen(bot *tgbotapi.BotAPI) {
+func startListening(bot *tgbotapi.BotAPI) {
     u := tgbotapi.NewUpdate(0)
     u.Timeout = 60
     updates, err := bot.GetUpdatesChan(u)
@@ -42,27 +42,36 @@ func startListen(bot *tgbotapi.BotAPI) {
     }
 }
 
-func startFeeds(bot *tgbotapi.BotAPI) {
-    wg := sync.WaitGroup{}
-    wg.Add(1)
-    cr := cron.New()
-    // run every 5 minutes, 05, 10, 15... etc
-    _, err := cr.AddFunc("*/5 * * * *", func() {
-        data := feed.CheckUpdates()
-        feed.PushAllFeeds(bot, data)
-    })
-    if err != nil {
-        log.Panicln(err)
+func startFeedServices(bot *tgbotapi.BotAPI) {
+    stream := feed.PushFeedServices(bot)
+
+    job := func() {
+        log.Println("--------------------------------------")
+        feed.CheckForUpdates(stream)
     }
-    cr.Run()
-    wg.Wait()
+
+    go func(ch chan *feed.UserFeeds) {
+        wg := sync.WaitGroup{}
+        wg.Add(1)
+        cr := cron.New()
+        // run every 20 minutes
+        _, err := cr.AddFunc("*/20 * * * *", job)
+        if err != nil {
+            log.Panicln(err)
+        }
+        cr.Run()
+        wg.Wait()
+    }(stream)
 }
 
 func main() {
+    // config
     config := loadConfig()
     database.Init(config.Debug)
     bot := newBot(config)
     feed.InitFeedParser(config.Client)
-    go startFeeds(bot)
-    startListen(bot)
+
+    // start services
+    startFeedServices(bot)
+    startListening(bot)
 }

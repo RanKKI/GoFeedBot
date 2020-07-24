@@ -15,7 +15,7 @@ func HandleCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
     if !ok {
         return
     }
-    log.Printf("User %d used command /%s", update.Message.Chat.ID, cmd)
+    log.Printf("User %d used command /%s", update.Message.Chat.ID, cmdStr)
     msg := cmd(update)
     if _, err := bot.Send(msg); err != nil {
         log.Panic(err)

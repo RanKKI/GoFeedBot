@@ -15,9 +15,10 @@ type UserFeeds struct {
 func addItems(w *sync.WaitGroup, lock *sync.Mutex, link string, m *map[string][]*gofeed.Item) {
     log.Printf("Checking %s", link)
     feed, err := fp.ParseURL(link)
+    defer w.Done()
+
     if err != nil {
-        log.Println(err)
-        return
+        panic(err)
     }
 
     // add items to map
@@ -27,7 +28,7 @@ func addItems(w *sync.WaitGroup, lock *sync.Mutex, link string, m *map[string][]
 
     lastUpdatedTime := feed.UpdatedParsed
     if feed.UpdatedParsed != nil && feed.PublishedParsed != nil {
-        if feed.PublishedParsed.Sub(*feed.UpdatedParsed) > 0 {
+        if feed.PublishedParsed.After(*feed.UpdatedParsed) {
             lastUpdatedTime = feed.PublishedParsed
         }
     } else if lastUpdatedTime == nil && feed.PublishedParsed != nil {
@@ -37,9 +38,9 @@ func addItems(w *sync.WaitGroup, lock *sync.Mutex, link string, m *map[string][]
     if lastUpdatedTime != nil {
         log.Printf("Totoal %d items of %s, Updated at %s", len(feed.Items), feed.Title, lastUpdatedTime)
     } else {
+        // Should't happen
         log.Printf("Totoal %d items of %s", len(feed.Items), feed.Title)
     }
-    w.Done()
 }
 
 func fetchAllUserSubscribe() *map[int64][]string {
@@ -62,12 +63,9 @@ func fetchAllSubscribeItems() *map[string][]*gofeed.Item {
     return &m
 }
 
-func CheckUpdates() []*UserFeeds {
+func CheckForUpdates(ch chan *UserFeeds) {
     userFeeds := *fetchAllUserSubscribe()
     feedItems := *fetchAllSubscribeItems()
-
-    // filter data
-    var ret []*UserFeeds
 
     for chatID, links := range userFeeds {
         userFeeds := UserFeeds{
@@ -85,9 +83,12 @@ func CheckUpdates() []*UserFeeds {
                 }
             }
         }
-        database.UpdateTime(chatID)
-        ret = append(ret, &userFeeds)
+        // Only update `last check time` when user have one or more new feed
+        if len(userFeeds.Items) > 0 {
+            database.UpdateTime(chatID)
+        }
+
         log.Printf("%d items have to sent to %d", len(userFeeds.Items), userFeeds.ChatID)
+        ch <- &userFeeds
     }
-    return ret
 }
