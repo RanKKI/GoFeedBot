@@ -34,19 +34,19 @@ func cleanContent(raw string) string {
     return output + "......"
 }
 
-func PushFeedServices(bot *tgbotapi.BotAPI) chan *UserFeeds {
-    ch := make(chan *UserFeeds)
-    go func(bot *tgbotapi.BotAPI, feeds chan *UserFeeds) {
-        for feed := range feeds {
-            for _, item := range feed.Items {
-                content := cleanContent(item.Description)
-                msg := tgbotapi.NewMessage(feed.ChatID, "")
-                msg.Text = fmt.Sprintf("<b>%s</b>\n%s\n%s", item.Title, content, item.Link)
+func PushFeedServices(bot *tgbotapi.BotAPI) chan *UserFeed {
+    ch := make(chan *UserFeed)
+    go func(bot *tgbotapi.BotAPI, ch chan *UserFeed) {
+        for feed := range ch {
+            go func(f *UserFeed) {
+                content := cleanContent(f.Item.Description)
+                msg := tgbotapi.NewMessage(f.ChatID, "")
+                msg.Text = fmt.Sprintf("<b>%s</b>\n%s\n%s", f.Item.Title, content, f.Item.Link)
                 msg.ParseMode = tgbotapi.ModeHTML
                 if _, err := bot.Send(msg); err != nil {
                     log.Panicln(err)
                 }
-            }
+            }(feed)
         }
     }(bot, ch)
     return ch

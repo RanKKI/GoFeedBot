@@ -53,9 +53,10 @@ func GetUpdateTime(chatID int64) time.Time {
     return feed.LastCheckAt.UTC()
 }
 
-func UpdateTime(chatID int64) {
+func UpdateTime(chatID int64, url string) {
     db.Table(TableName).Where(&Feed{
         ChatID: chatID,
+        URL:    url,
     }).Update(Feed{
         LastCheckAt: time.Now(),
     })

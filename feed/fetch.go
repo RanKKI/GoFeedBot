@@ -7,24 +7,40 @@ import (
     "sync"
 )
 
-type UserFeeds struct {
+type UserFeed struct {
     ChatID int64
-    Items  []*gofeed.Item
+    Item   *gofeed.Item
 }
 
-func addItems(w *sync.WaitGroup, lock *sync.Mutex, link string, m *map[string][]*gofeed.Item) {
-    log.Printf("Checking %s", link)
-    feed, err := fp.ParseURL(link)
-    defer w.Done()
+type Items struct {
+    URL   string
+    Items []*gofeed.Item
+}
 
-    if err != nil {
-        panic(err)
+type Fetcher struct {
+    PushChannel  chan *UserFeed
+    FetchChannel chan *Items
+    Debug        bool
+}
+
+func (f *Fetcher) fetchSubscribes() map[string][]int64 {
+    urlUsers := map[string][]int64{}
+
+    for _, feed := range database.QueryAllFeeds() {
+        urlUsers[feed.URL] = append(urlUsers[feed.URL], feed.ChatID)
     }
 
-    // add items to map
-    lock.Lock()
-    (*m)[link] = feed.Items
-    lock.Unlock()
+    return urlUsers
+}
+
+func (f *Fetcher) fetchURL(url string, wg *sync.WaitGroup) {
+    defer wg.Done()
+    log.Printf("Checking %s", url)
+    feed, err := Instance.fp.ParseURL(url)
+
+    if err != nil {
+        log.Panicln(err)
+    }
 
     lastUpdatedTime := feed.UpdatedParsed
     if feed.UpdatedParsed != nil && feed.PublishedParsed != nil {
@@ -41,54 +57,47 @@ func addItems(w *sync.WaitGroup, lock *sync.Mutex, link string, m *map[string][]
         // Should't happen
         log.Printf("Totoal %d items of %s", len(feed.Items), feed.Title)
     }
-}
 
-func fetchAllUserSubscribe() *map[int64][]string {
-    m := map[int64][]string{}
-    for _, f := range database.QueryAllFeeds() {
-        m[f.ChatID] = append(m[f.ChatID], f.URL)
+    f.FetchChannel <- &Items{
+        URL:   url,
+        Items: feed.Items,
     }
-    return &m
 }
 
-func fetchAllSubscribeItems() *map[string][]*gofeed.Item {
-    m := map[string][]*gofeed.Item{}
-    wg := sync.WaitGroup{}
-    lock := sync.Mutex{}
-    for _, link := range database.QueryAllLinks() {
+func (f *Fetcher) Fetch() {
+    var wg sync.WaitGroup
+    for _, url := range database.QueryAllLinks() {
         wg.Add(1)
-        go addItems(&wg, &lock, link, &m)
+        go f.fetchURL(url, &wg)
     }
     wg.Wait()
-    return &m
 }
 
-func CheckForUpdates(ch chan *UserFeeds) {
-    userFeeds := *fetchAllUserSubscribe()
-    feedItems := *fetchAllSubscribeItems()
+func (f *Fetcher) StartFetchServices() {
+    urls := f.fetchSubscribes()
 
-    for chatID, links := range userFeeds {
-        userFeeds := UserFeeds{
-            ChatID: chatID,
-            Items:  []*gofeed.Item{},
-        }
-        lastCheckTime := database.GetUpdateTime(chatID)
-        log.Printf("User %d last check at %s", chatID, lastCheckTime)
-        for _, link := range links {
-            for _, item := range feedItems[link] {
+    for item := range f.FetchChannel {
+        for _, chatID := range urls[item.URL] {
+            lastCheckTime := database.GetUpdateTime(chatID)
+            hasItem := false
+            for _, item := range item.Items {
+
                 if item.PublishedParsed == nil {
                     log.Printf("Item %s does not have published time", item.Title)
                 } else if item.PublishedParsed.Sub(lastCheckTime) >= 0 {
-                    userFeeds.Items = append(userFeeds.Items, item)
+                    hasItem = true
+                    f.PushChannel <- &UserFeed{
+                        ChatID: chatID,
+                        Item:   item,
+                    }
                 }
             }
-        }
-        // Only update `last check time` when user have one or more new feed
-        if len(userFeeds.Items) > 0 {
-            database.UpdateTime(chatID)
-        }
 
-        log.Printf("%d items have to sent to %d", len(userFeeds.Items), userFeeds.ChatID)
-        ch <- &userFeeds
+            if hasItem {
+                database.UpdateTime(chatID, item.URL)
+            }
+
+        }
     }
+
 }

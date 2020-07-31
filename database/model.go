@@ -1,6 +1,7 @@
 package database
 
 import (
+    "GoTeleFeed/config"
     "github.com/jinzhu/gorm"
     "time"
 )
@@ -9,7 +10,7 @@ var db *gorm.DB
 
 const TableName = "feeds"
 
-func Init(debug bool) {
+func Init(config config.Config) {
     var err error
     db, err = gorm.Open("sqlite3", "data.db")
     if err != nil {
@@ -18,7 +19,7 @@ func Init(debug bool) {
 
     db.AutoMigrate(&Feed{})
 
-    if debug {
+    if config.Debug {
         db = db.Debug()
     }
 }

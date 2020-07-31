@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
     "github.com/stretchr/testify/assert"
@@ -14,7 +14,7 @@ func TestLoadConfig(t *testing.T) {
     })
 
     // config.example.json must exists,
-    ass.NotEmpty(loadFile("./config.example.json"))
+    ass.NotEmpty(loadFile("../config.example.json"))
 
     // Test given json data
     config := parseConfig([]byte("{\n  \"token\": \"test_token\",\n  \"debug\": false,\n  \"proxy\": \"\"\n}"))
@@ -30,11 +30,11 @@ func TestLoadConfig(t *testing.T) {
     // Invalid proxy
     ass.Panics(func() {
         config.Proxy = "kkk://123:-1"
-        setupClient(config)
+        setupClient(&config)
     })
 
     ass.NotPanics(func() {
         config.Proxy = "http://127.0.0.1:1234"
-        setupClient(config)
+        setupClient(&config)
     })
 }

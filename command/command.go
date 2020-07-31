@@ -40,7 +40,7 @@ func cmdAdd(update *tgbotapi.Update) tgbotapi.Chattable {
 
     url := update.Message.CommandArguments()
 
-    f, err := feed.TestFeed(url)
+    f, err := feed.Instance.TestURL(url)
 
     if err != nil {
         msg.Text = "Failed, " + err.Error()

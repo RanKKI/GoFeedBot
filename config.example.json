@@ -1,5 +1,6 @@
 {
   "token": "",
   "debug": false,
-  "proxy": ""
+  "proxy": "",
+  "interval": 20
 }
