@@ -3,8 +3,8 @@ package main
 import (
     "GoTeleFeed/command"
     "GoTeleFeed/config"
-    "GoTeleFeed/database"
     "GoTeleFeed/feed"
+    "GoTeleFeed/model"
     tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
     _ "github.com/jinzhu/gorm/dialects/sqlite"
     "log"
@@ -27,7 +27,6 @@ func (b *FeedBot) init() {
     bot.Debug = b.Config.Debug
     log.Printf("Authorized on account %s", bot.Self.UserName)
     b.Bot = bot
-
 }
 
 func (b *FeedBot) run() {
@@ -55,7 +54,7 @@ func main() {
         Config: &appConfig,
     }
     feedBot.init()
-    database.Init(appConfig)
+    model.Init(appConfig)
     feed.Instance.Init(appConfig, feedBot.Bot)
     feedBot.run()
 }

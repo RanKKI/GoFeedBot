@@ -1,23 +1,27 @@
 package feed
 
 import (
+    "github.com/stretchr/testify/assert"
     "testing"
+    "time"
 )
 
-func TestAddItem(t *testing.T) {
-    //ass := assert.New(t)
+func TestLatestTime(t *testing.T) {
+    ass := assert.New(t)
 
-    //m := map[string][]*gofeed.Item{}
-    //wg := sync.WaitGroup{}
-    //lock := sync.Mutex{}
-    //url := "https://feeds.twit.tv/twit.xml"
-    //wg.Add(1)
-    //addItems(&wg, &lock, url, &m)
-    //ass.Greater(len(m[url]), 0, "map should have items")
-    //
-    //url = "https://12321321.dfakl"
-    //ass.Panics(func() {
-    //   addItems(&wg, &lock, url, &m)
-    //})
+    f := Fetcher{}
+    t1 := time.Now()
+    t2 := t1.Add(10 * time.Second)
+    t3 := f.getLatestTime(&t1, &t2)
+
+    ass.Equal(t3, t2)
+
+    t3 = f.getLatestTime(&t1, nil)
+
+    ass.Equal(t3, t1)
+
+    ass.Panics(func() {
+        f.getLatestTime(nil, nil)
+    })
 
 }

@@ -3,6 +3,7 @@ package feed
 import (
     "GoTeleFeed/config"
     "errors"
+    "fmt"
     tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
     "github.com/mmcdole/gofeed"
     "github.com/robfig/cron/v3"
@@ -16,18 +17,24 @@ var Instance Feed
 type Feed struct {
     fp      *gofeed.Parser
     config  config.Config
-    ch      chan *UserFeed
     fetcher *Fetcher
+    pusher  *Pusher
 }
 
 func (f *Feed) Init(config config.Config, bot *tgbotapi.BotAPI) {
     f.fp = gofeed.NewParser()
     f.fp.Client = config.Client
     f.config = config
-    f.ch = PushFeedServices(bot)
     f.fetcher = &Fetcher{
-        PushChannel:  f.ch,
-        FetchChannel: make(chan *Items),
+        PushChannel:  make(chan *UserFeed),
+        FetchChannel: make(chan *Item),
+        Subscribes:   make(map[string]map[int64]bool),
+        Config:       config,
+    }
+    f.pusher = &Pusher{
+        Bot:    bot,
+        Config: config,
+        Stream: f.fetcher.PushChannel,
     }
 }
 
@@ -47,24 +54,26 @@ func (f *Feed) TestURL(feedURL string) (*gofeed.Feed, error) {
     return feed, err
 }
 
-func (f *Feed) StartService() {
-    go f.fetcher.StartFetchServices()
+func (f *Feed) StartSchedule() {
+    var wg sync.WaitGroup
+    wg.Add(1)
+    cr := cron.New()
 
-    job := func() {
-        log.Println("--------------------------------------")
-        f.fetcher.Fetch()
+    interval := fmt.Sprintf("@every %s", f.config.Interval)
+    log.Printf("Interval %s", interval)
+    _, err := cr.AddFunc(interval, f.fetcher.Fetch)
+    if err != nil {
+        log.Panicln(err)
     }
+    cr.Run()
+    wg.Wait()
+}
 
-    go func(ch chan *UserFeed) {
-        wg := sync.WaitGroup{}
-        wg.Add(1)
-        cr := cron.New()
-        // run every 20 minutes
-        _, err := cr.AddFunc("*/5 * * * *", job)
-        if err != nil {
-            log.Panicln(err)
-        }
-        cr.Run()
-        wg.Wait()
-    }(f.ch)
+func (f *Feed) StartService() {
+    if f.fp == nil || f.fetcher == nil || f.pusher == nil {
+        panic("You must init feed instance first")
+    }
+    go f.StartSchedule()
+    go f.fetcher.StartFetchServices()
+    go f.pusher.StartPushServices()
 }

@@ -2,5 +2,6 @@
   "token": "",
   "debug": false,
   "proxy": "",
-  "interval": 20
+  "interval": "10m",
+  "max_content_length": 100
 }
