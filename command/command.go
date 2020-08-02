@@ -49,10 +49,9 @@ func cmdAdd(update *tgbotapi.Update) tgbotapi.MessageConfig {
 
     // Since there is a same feed url in the db
     // No need to check whether is a valid link
-    if fe := model.QueryFeed(model.Feed{URL: url}); fe != nil {
+    if fe := model.QueryFeed(model.Feed{URL: url}); fe.ID != 0 && fe.ChatID != 0 {
         title = fe.Title
         name = fe.AuthorName
-
     } else {
         f, err := feed.Instance.TestURL(url)
 

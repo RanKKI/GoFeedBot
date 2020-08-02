@@ -18,6 +18,9 @@ func AddSub(chatID int64, url, title, author string) error {
     }
 
     f.Title = title
+    if f.Title == "" {
+        f.Title = url
+    }
     f.AuthorName = author
     f.LastCheckAt = time.Now().UTC()
     db.Create(&f)
