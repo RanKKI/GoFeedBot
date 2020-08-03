@@ -75,6 +75,10 @@ func (fetcher *Fetcher) Fetch() {
 
     var wg sync.WaitGroup
     for _, feed := range feeds {
+        // if there no subscriber of the feed, skip
+        if len(feed.Subscribers) == 0 {
+            continue
+        }
         wg.Add(1)
         go fetcher.fetchURL(feed, &wg)
     }
