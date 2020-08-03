@@ -19,6 +19,6 @@ func HandleCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
     msg := cmd(update)
     msg.ReplyToMessageID = update.Message.MessageID
     if _, err := bot.Send(msg); err != nil {
-        log.Panic(err)
+        log.Printf("Error on repling message to %d %s", msg.ChatID, err.Error())
     }
 }

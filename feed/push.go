@@ -22,7 +22,7 @@ func (p *Pusher) StartPushServices() {
             msg.Text = fmt.Sprintf("<b>%s</b>\n%s\n%s", f.Item.Title, content, f.Item.Link)
             msg.ParseMode = tgbotapi.ModeHTML
             if _, err := p.Bot.Send(msg); err != nil {
-                log.Panicln(err)
+                log.Printf("Error on sending message to %d %s", f.ChatID, err.Error())
             }
         }(feed)
     }

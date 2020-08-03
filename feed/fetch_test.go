@@ -12,16 +12,17 @@ func TestLatestTime(t *testing.T) {
     f := Fetcher{}
     t1 := time.Now()
     t2 := t1.Add(10 * time.Second)
-    t3 := f.getLatestTime(&t1, &t2)
+    t3, err := f.getLatestTime(&t1, &t2)
+    ass.Nil(err)
+    ass.Equal(*t3, t2)
 
-    ass.Equal(t3, t2)
+    t3, err = f.getLatestTime(&t1, nil)
+    ass.Nil(err)
+    ass.Equal(*t3, t1)
 
-    t3 = f.getLatestTime(&t1, nil)
+    t3, err = f.getLatestTime(nil, nil)
 
-    ass.Equal(t3, t1)
-
-    ass.Panics(func() {
-        f.getLatestTime(nil, nil)
-    })
+    ass.Nil(t3)
+    ass.NotNil(err)
 
 }

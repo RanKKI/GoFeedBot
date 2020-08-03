@@ -3,6 +3,8 @@ package feed
 import (
     "GoTeleFeed/config"
     "GoTeleFeed/model"
+    "errors"
+    "fmt"
     "github.com/mmcdole/gofeed"
     "log"
     "sync"
@@ -26,16 +28,16 @@ type Fetcher struct {
     Subscribes   map[string]map[int64]bool
 }
 
-func (f *Fetcher) getLatestTime(t1 *time.Time, t2 *time.Time) time.Time {
+func (f *Fetcher) getLatestTime(t1 *time.Time, t2 *time.Time) (*time.Time, error) {
     t3 := t1
     if t1 != nil && t2 != nil && t2.After(*t1) {
         t3 = t2
     } else if t3 == nil && t2 != nil {
         t3 = t2
     } else if t3 == nil {
-        log.Panicf("error on parsing time, where t1=%s, t2=%s", t1, t2)
+        return nil, errors.New(fmt.Sprintf("error on parsing time, where t1=%s, t2=%s", t1, t2))
     }
-    return *t3
+    return t3, nil
 }
 
 func (f *Fetcher) fetchURL(url string, wg *sync.WaitGroup) {
@@ -46,10 +48,15 @@ func (f *Fetcher) fetchURL(url string, wg *sync.WaitGroup) {
     feed, err := Instance.fp.ParseURL(url)
 
     if err != nil {
-        log.Panicln(err)
+        log.Printf("Error on parseing url %s", err.Error())
+        return
     }
 
-    lastUpdatedTime := f.getLatestTime(feed.UpdatedParsed, feed.PublishedParsed)
+    lastUpdatedTime, err := f.getLatestTime(feed.UpdatedParsed, feed.PublishedParsed)
+    if err != nil {
+        log.Println(err.Error())
+        return
+    }
     if f.Config.Debug {
         log.Printf("Totoal %d items of %s, Updated at %s", len(feed.Items), feed.Title, lastUpdatedTime)
     }
