@@ -101,11 +101,12 @@ func (fetcher *Fetcher) FilterAndSend(chatID int64, item *Item) {
 
         if item.PublishedParsed == nil {
             log.Printf("Item %s does not have published time", item.Title)
-        } else if item.PublishedParsed.After(lastCheckTime) {
+        } else if item.PublishedParsed.After(lastCheckTime) && !model.ItemSentBefore(item) {
             fetcher.PushChannel <- &UserFeed{
                 ChatID: chatID,
                 Item:   item,
             }
+            model.NewItem(item)
         } else {
             // since the items are in-order
             // if one of the items is published before the `lastCheckTime`

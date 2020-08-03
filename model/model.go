@@ -14,7 +14,7 @@ func Init(config config.Config) {
         panic(err)
     }
 
-    db.AutoMigrate(&Feed{}, &Subscribe{})
+    db.AutoMigrate(&Feed{}, &Subscribe{}, &Item{})
 
     if config.Debug {
         db = db.Debug()
