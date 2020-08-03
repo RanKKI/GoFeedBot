@@ -44,30 +44,21 @@ func cmdAdd(update *tgbotapi.Update) tgbotapi.MessageConfig {
         return msg
     }
 
-    title := ""
-    name := ""
-
+    fe := &model.Feed{URL: url}
     // Since there is a same feed url in the db
     // No need to check whether is a valid link
-    if fe := model.QueryFeed(model.Feed{URL: url}); fe.ID != 0 && fe.ChatID != 0 {
-        title = fe.Title
-        name = fe.AuthorName
-    } else {
+    if !fe.Exists() {
         f, err := feed.Instance.TestURL(url)
-
         if err != nil {
             msg.Text = "Failed, " + err.Error()
             return msg
         }
-
-        title = f.Title
-        if f.Author != nil {
-            name = f.Author.Name
-        }
-
+        fe = model.NewFeed(url, f.Title)
     }
 
-    if err := model.AddSub(msg.ChatID, url, title, name); err != nil {
+    title := fe.Title
+
+    if err := model.AddSubscribe(fe, msg.ChatID); err != nil {
         msg.Text = err.Error()
         return msg
     }
@@ -75,16 +66,12 @@ func cmdAdd(update *tgbotapi.Update) tgbotapi.MessageConfig {
     log.Printf("User %d subsribed %s", msg.ChatID, url)
 
     msg.Text = fmt.Sprintf("Success.\nTitle: %s", title)
-    if len(name) != 0 {
-        msg.Text += "\nby: " + name
-    }
     return msg
 }
 
 func cmdList(update *tgbotapi.Update) tgbotapi.MessageConfig {
     msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-
-    feeds := model.QueryFeeds(model.Feed{ChatID: msg.ChatID})
+    feeds := model.GetFeedsByChatID(msg.ChatID)
     if len(feeds) == 0 {
         msg.Text = "You don't have any subscribes at the moment"
         return msg
@@ -105,13 +92,13 @@ func cmdRemove(update *tgbotapi.Update) tgbotapi.MessageConfig {
         return msg
     }
 
-    subID, err := strconv.ParseInt(arg, 10, 64)
+    feedID, err := strconv.ParseInt(arg, 10, 64)
     if err != nil {
         msg.Text = fmt.Sprintf("Invalid argument %s", arg)
         return msg
     }
 
-    err = model.DeleteSub(update.Message.Chat.ID, subID)
+    err = model.Unsubscribe(msg.ChatID, feedID)
 
     if err != nil {
         msg.Text = err.Error()

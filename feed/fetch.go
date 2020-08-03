@@ -17,7 +17,7 @@ type UserFeed struct {
 }
 
 type Item struct {
-    URL   string
+    Feed  *model.Feed
     Items []*gofeed.Item
 }
 
@@ -25,10 +25,9 @@ type Fetcher struct {
     PushChannel  chan *UserFeed
     FetchChannel chan *Item
     Config       config.Config
-    Subscribes   map[string]map[int64]bool
 }
 
-func (f *Fetcher) getLatestTime(t1 *time.Time, t2 *time.Time) (*time.Time, error) {
+func (fetcher *Fetcher) getLatestTime(t1 *time.Time, t2 *time.Time) (*time.Time, error) {
     t3 := t1
     if t1 != nil && t2 != nil && t2.After(*t1) {
         t3 = t2
@@ -40,70 +39,66 @@ func (f *Fetcher) getLatestTime(t1 *time.Time, t2 *time.Time) (*time.Time, error
     return t3, nil
 }
 
-func (f *Fetcher) fetchURL(url string, wg *sync.WaitGroup) {
+func (fetcher *Fetcher) fetchURL(feed *model.Feed, wg *sync.WaitGroup) {
     defer wg.Done()
-    if f.Config.Debug {
+    url := feed.URL
+    if fetcher.Config.Debug {
         log.Printf("Checking %s", url)
     }
-    feed, err := Instance.fp.ParseURL(url)
+    f, err := Instance.fp.ParseURL(url)
 
     if err != nil {
         log.Printf("Error on parseing url %s", err.Error())
         return
     }
 
-    lastUpdatedTime, err := f.getLatestTime(feed.UpdatedParsed, feed.PublishedParsed)
+    lastUpdatedTime, err := fetcher.getLatestTime(f.UpdatedParsed, f.PublishedParsed)
     if err != nil {
         log.Println(err.Error())
         return
     }
-    if f.Config.Debug {
-        log.Printf("Totoal %d items of %s, Updated at %s", len(feed.Items), feed.Title, lastUpdatedTime)
+    if fetcher.Config.Debug {
+        log.Printf("Totoal %d items of %s, Updated at %s", len(f.Items), feed.Title, lastUpdatedTime)
     }
 
-    f.FetchChannel <- &Item{
-        URL:   url,
-        Items: feed.Items,
+    fetcher.FetchChannel <- &Item{
+        Feed:  feed,
+        Items: f.Items,
     }
 }
 
-func (f *Fetcher) Fetch() {
+func (fetcher *Fetcher) Fetch() {
     // Update subscribes
-    for _, feed := range model.QueryFeeds() {
-        if f.Subscribes[feed.URL] == nil {
-            f.Subscribes[feed.URL] = make(map[int64]bool)
-        }
-        f.Subscribes[feed.URL][feed.ChatID] = true
-    }
+    feeds := model.GetAllFeeds()
 
-    log.Printf("Requesting %d links", len(f.Subscribes))
+    log.Printf("Requesting %d links", len(feeds))
 
     var wg sync.WaitGroup
-    for _, url := range model.QueryFeedURLs() {
+    for _, feed := range feeds {
         wg.Add(1)
-        go f.fetchURL(url, &wg)
+        go fetcher.fetchURL(feed, &wg)
     }
     wg.Wait()
 }
 
-func (f *Fetcher) StartFetchServices() {
-    for item := range f.FetchChannel {
-        for chatID := range f.Subscribes[item.URL] {
-            go f.FilterAndSend(chatID, item)
+func (fetcher *Fetcher) StartFetchServices() {
+    for item := range fetcher.FetchChannel {
+        for _, sub := range item.Feed.Subscribers {
+            go fetcher.FilterAndSend(sub.ChatID, item)
         }
     }
 
 }
 
-func (f *Fetcher) FilterAndSend(chatID int64, item *Item) {
-    lastCheckTime := model.QueryFeed(model.Feed{ChatID: chatID}).LastCheckAt
+func (fetcher *Fetcher) FilterAndSend(chatID int64, item *Item) {
+    lastCheckTime := item.Feed.LastCheckAt
 
     for _, item := range item.Items {
 
         if item.PublishedParsed == nil {
             log.Printf("Item %s does not have published time", item.Title)
         } else if item.PublishedParsed.After(lastCheckTime) {
-            f.PushChannel <- &UserFeed{
+            fetcher.PushChannel <- &UserFeed{
                 ChatID: chatID,
                 Item:   item,
             }
@@ -115,5 +110,5 @@ func (f *Fetcher) FilterAndSend(chatID int64, item *Item) {
         }
     }
 
-    model.UpdateTime(chatID, item.URL)
+    item.Feed.UpdateCheckTime()
 }

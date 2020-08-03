@@ -28,7 +28,6 @@ func (f *Feed) Init(config config.Config, bot *tgbotapi.BotAPI) {
     f.fetcher = &Fetcher{
         PushChannel:  make(chan *UserFeed),
         FetchChannel: make(chan *Item),
-        Subscribes:   make(map[string]map[int64]bool),
         Config:       config,
     }
     f.pusher = &Pusher{

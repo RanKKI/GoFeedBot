@@ -3,12 +3,9 @@ package model
 import (
     "GoTeleFeed/config"
     "github.com/jinzhu/gorm"
-    "time"
 )
 
 var db *gorm.DB
-
-const TableName = "feeds"
 
 func Init(config config.Config) {
     var err error
@@ -17,22 +14,9 @@ func Init(config config.Config) {
         panic(err)
     }
 
-    db.AutoMigrate(&Feed{})
+    db.AutoMigrate(&Feed{}, &Subscribe{})
 
     if config.Debug {
         db = db.Debug()
     }
-}
-
-type Feed struct {
-    ID          int64
-    URL         string
-    Title       string
-    AuthorName  string
-    ChatID      int64
-    LastCheckAt time.Time
-}
-
-func (Feed) TableName() string {
-    return TableName
 }
