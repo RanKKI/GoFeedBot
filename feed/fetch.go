@@ -4,7 +4,6 @@ import (
     "GoTeleFeed/config"
     "GoTeleFeed/model"
     "errors"
-    "fmt"
     "github.com/mmcdole/gofeed"
     "log"
     "sync"
@@ -34,7 +33,7 @@ func (fetcher *Fetcher) getLatestTime(t1 *time.Time, t2 *time.Time) (*time.Time,
     } else if t3 == nil && t2 != nil {
         t3 = t2
     } else if t3 == nil {
-        return nil, errors.New(fmt.Sprintf("error on parsing time, where t1=%s, t2=%s", t1, t2))
+        return nil, errors.New("both given time are nil")
     }
     return t3, nil
 }
@@ -48,13 +47,13 @@ func (fetcher *Fetcher) fetchURL(feed *model.Feed, wg *sync.WaitGroup) {
     f, err := Instance.fp.ParseURL(url)
 
     if err != nil {
-        log.Printf("Error on parseing url %s", err.Error())
+        log.Printf("error on fetching %s, %s", feed.Title, err.Error())
         return
     }
 
     lastUpdatedTime, err := fetcher.getLatestTime(f.UpdatedParsed, f.PublishedParsed)
     if err != nil {
-        log.Println(err.Error())
+        log.Printf("error on fetching %s, %s", feed.Title, err.Error())
         return
     }
     if fetcher.Config.Debug {

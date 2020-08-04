@@ -19,10 +19,11 @@ func CleanHtmlContent(raw string, contentLength int) string {
     raw = removeBlank.ReplaceAllString(raw, "\n")
 
     r := []rune(raw)
-
+    ext := ""
     if len(r) > contentLength {
         r = r[:contentLength]
+        ext = "......"
     }
 
-    return strings.TrimSuffix(string(r), "\n") + "......"
+    return strings.TrimSuffix(string(r), "\n") + ext
 }
