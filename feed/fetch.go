@@ -1,8 +1,8 @@
 package feed
 
 import (
-    "GoTeleFeed/config"
-    "GoTeleFeed/model"
+    "GoFeedBot/config"
+    "GoFeedBot/model"
     "errors"
     "github.com/mmcdole/gofeed"
     "log"

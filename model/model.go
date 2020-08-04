@@ -1,7 +1,7 @@
 package model
 
 import (
-    "GoTeleFeed/config"
+    "GoFeedBot/config"
     "github.com/jinzhu/gorm"
 )
 

@@ -1,10 +1,10 @@
 package main
 
 import (
-    "GoTeleFeed/command"
-    "GoTeleFeed/config"
-    "GoTeleFeed/feed"
-    "GoTeleFeed/model"
+    "GoFeedBot/command"
+    "GoFeedBot/config"
+    "GoFeedBot/feed"
+    "GoFeedBot/model"
     tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
     _ "github.com/jinzhu/gorm/dialects/sqlite"
     "log"

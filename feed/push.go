@@ -1,8 +1,8 @@
 package feed
 
 import (
-    "GoTeleFeed/config"
-    "GoTeleFeed/utils"
+    "GoFeedBot/config"
+    "GoFeedBot/utils"
     "fmt"
     tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
     "log"

@@ -1,4 +1,4 @@
-module GoTeleFeed
+module GoFeedBot
 
 go 1.14
 

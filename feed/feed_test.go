@@ -1,7 +1,7 @@
 package feed
 
 import (
-    "GoTeleFeed/config"
+    "GoFeedBot/config"
     "github.com/stretchr/testify/assert"
     "net/http"
     "testing"
