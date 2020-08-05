@@ -1,8 +1,11 @@
-GoTeleFeed is a telegram bot which allowed user to subscribe RSS/Atom feed
+GoFeedBot is a telegram bot which used to subscribe RSS/Atom feed by telegram
 
 ## Usage
  - Clone this project
  - Build it
- - Copy `config.exmaple.json` to `config.json`
- - Add your bot token and proxy if needed
+ - Set Environment variables
+    - token
+    - proxy ( if needed )
+    - interval ( default 30m )
+    - debug ( default 0)
  - Run it

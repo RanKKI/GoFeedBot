@@ -1,62 +1,61 @@
 package config
 
 import (
-    "encoding/json"
     "fmt"
-    "io/ioutil"
     "log"
     "net/http"
     "net/url"
+    "os"
     "time"
 )
 
 type Config struct {
     Token            string `json:"token"`
     Debug            bool   `json:"debug"`
-    Proxy            string `json:"proxy"`
     Interval         string `json:"interval"`
     MaxContentLength int    `json:"max_content_length"`
     Client           *http.Client
 }
 
-func loadFile(filename string) []byte {
-    data, err := ioutil.ReadFile(filename)
+func (config *Config) LoadFromEnv() {
+    config.Client = &http.Client{}
+    if os.Getenv("debug") == "1" {
+        config.Debug = true
+    }
+    config.SetToken(os.Getenv("token"))
+    config.SetProxy(os.Getenv("proxy"))
+    config.SetInterval(os.Getenv("interval"))
+}
+
+func (config *Config) SetToken(token string) {
+    if token == "EMPTY" || token == "" {
+        panic("You must provide a telegram bot token")
+    }
+    config.Token = token
+}
+
+func (config *Config) SetProxy(proxy string) {
+    if proxy == "EMPTY" || proxy == "" {
+        return
+    }
+    proxyUrl, err := url.Parse(proxy)
     if err != nil {
         panic(err)
     }
-    return data
+    log.Printf("Using proxy %s", proxy)
+    config.Client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
 }
 
-func setupClient(config *Config) {
-    config.Client = &http.Client{}
-    if config.Proxy != "" {
-        proxyUrl, err := url.Parse(config.Proxy)
-        if err != nil {
-            panic(err)
-        }
-        log.Printf("Using proxy %s", config.Proxy)
-        config.Client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
-    }
-}
-
-func parseConfig(data []byte) Config {
-    config := Config{}
-    if err := json.Unmarshal(data, &config); err != nil {
-        panic(err)
-    }
-    _, err := time.ParseDuration(config.Interval)
+func (config *Config) SetInterval(interval string) {
+    _, err := time.ParseDuration(interval)
     if err != nil {
         panic(fmt.Sprintf("invaild interval %s\nsee %s", config.Interval, "https://golang.org/pkg/time/#ParseDuration"))
     }
-    if config.MaxContentLength < 0 {
-        panic(fmt.Sprintf("Max Content Length must >= 0 not %d", config.MaxContentLength))
-    }
-    setupClient(&config)
-    return config
+    config.Interval = interval
 }
 
-func LoadConfig(filename string) Config {
-    log.Println("Loading config file", filename)
-    data := loadFile(filename)
-    return parseConfig(data)
+func LoadConfig() Config {
+    config := Config{}
+    config.LoadFromEnv()
+    return config
 }

@@ -49,7 +49,7 @@ func (b *FeedBot) run() {
 }
 
 func main() {
-    appConfig := config.LoadConfig("./config.json")
+    appConfig := config.LoadConfig()
     feedBot := FeedBot{
         Config: &appConfig,
     }
