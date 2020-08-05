@@ -18,7 +18,6 @@ type Config struct {
 }
 
 func (config *Config) LoadFromEnv() {
-    config.Client = &http.Client{}
     if os.Getenv("debug") == "1" {
         config.Debug = true
     }
@@ -35,6 +34,7 @@ func (config *Config) SetToken(token string) {
 }
 
 func (config *Config) SetProxy(proxy string) {
+    config.Client = &http.Client{}
     if proxy == "EMPTY" || proxy == "" {
         return
     }
@@ -47,6 +47,9 @@ func (config *Config) SetProxy(proxy string) {
 }
 
 func (config *Config) SetInterval(interval string) {
+    if interval == "" {
+        interval = "30m"
+    }
     _, err := time.ParseDuration(interval)
     if err != nil {
         panic(fmt.Sprintf("invaild interval %s\nsee %s", config.Interval, "https://golang.org/pkg/time/#ParseDuration"))

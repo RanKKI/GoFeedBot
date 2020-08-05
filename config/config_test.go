@@ -2,73 +2,57 @@ package config
 
 import (
     "github.com/stretchr/testify/assert"
+    "os"
     "testing"
 )
-
-func TestLoadConfig(t *testing.T) {
-    ass := assert.New(t)
-
-    // File should not exists
-    ass.Panics(func() {
-        loadFile("some_file_lalalal")
-    })
-
-    // config.example.json must exists,
-    ass.NotEmpty(loadFile("../config.example.json"))
-}
 
 func TestData(t *testing.T) {
     ass := assert.New(t)
     // JSON Data
-    data := "{\n  \"token\": \"test_token_abcde\",\n  \"debug\": false,\n  \"proxy\": \"\",\n  \"interval\": \"10m\",\n  \"max_content_length\": 100\n}"
+    _ = os.Setenv("token", "123")
+    _ = os.Setenv("interval", "11m1s")
+    _ = os.Setenv("proxy", "http://127.0.0.1:1234")
 
-    // Test given json data
-    config := parseConfig([]byte(data))
+    config := Config{}
+    config.LoadFromEnv()
 
-    // Invalid json format
-    ass.Panics(func() {
-        parseConfig([]byte("{'token':'test_token'}}"))
-    })
+    ass.Equal(config.Token, "123")
+    ass.Equal(config.Interval, "11m1s")
+    ass.Equal(config.Debug, false)
 
-    ass.Equal("test_token_abcde", config.Token)
-    ass.Equal(false, config.Debug)
-
-    data = "{\n  \"token\": \"\",\n  \"debug\": false,\n  \"proxy\": \"\",\n  \"interval\": \"10h12m\",\n  \"max_content_length\": -12\n}"
-    ass.Panics(func() {
-        parseConfig([]byte(data))
-    })
+    _ = os.Setenv("debug", "1")
+    config.LoadFromEnv()
+    ass.Equal(config.Debug, true)
 }
 
 func TestInterval(t *testing.T) {
     ass := assert.New(t)
-    data := "{\n  \"token\": \"\",\n  \"debug\": false,\n  \"proxy\": \"\",\n  \"interval\": \"10\",\n  \"max_content_length\": 100\n}"
+    config := Config{}
+    config.SetInterval("")
+    ass.Equal(config.Interval, "30m")
     ass.Panics(func() {
-        parseConfig([]byte(data))
+        config.SetInterval("10,")
     })
-
-    data = "{\n  \"token\": \"\",\n  \"debug\": false,\n  \"proxy\": \"\",\n  \"interval\": \"10m\",\n  \"max_content_length\": 100\n}"
     ass.NotPanics(func() {
-        parseConfig([]byte(data))
+        config.SetInterval("10m")
     })
-
-    data = "{\n  \"token\": \"\",\n  \"debug\": false,\n  \"proxy\": \"\",\n  \"interval\": \"10h12m\",\n  \"max_content_length\": 100\n}"
     ass.NotPanics(func() {
-        parseConfig([]byte(data))
+        config.SetInterval("10m30s")
     })
 }
 
 func TestProxy(t *testing.T) {
     ass := assert.New(t)
     config := Config{}
+    config.SetProxy("")
+
     // Invalid proxy
     ass.Panics(func() {
-        config.Proxy = "kkk://123:-1"
-        setupClient(&config)
+        config.SetProxy("kkk://123:-1")
     })
 
     ass.NotPanics(func() {
-        config.Proxy = "http://127.0.0.1:1234"
-        setupClient(&config)
+        config.SetProxy("http://127.0.0.1:1234")
     })
 
 }
